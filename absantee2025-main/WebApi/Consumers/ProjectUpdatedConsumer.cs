@@ -16,6 +16,6 @@ public class ProjectUpdatedConsumer : IConsumer<ProjectUpdatedMessage>
     public async Task Consume(ConsumeContext<ProjectUpdatedMessage> context)
 {
     var msg = context.Message;
-    await _projectService.SubmitUpdatedAsync(msg.id, msg.title, msg.acronym, msg.periodDate);
+    await _projectService.SubmitUpdatedAsync(msg.Id, msg.Title, msg.Acronym, msg.periodDate);
 }
 }

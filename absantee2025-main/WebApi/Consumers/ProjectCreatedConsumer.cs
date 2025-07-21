@@ -14,6 +14,6 @@ public class ProjectCreatedConsumer : IConsumer<ProjectCreatedMessage>
     public async Task Consume(ConsumeContext<ProjectCreatedMessage> context)
     {
         var msg = context.Message;
-        await _projectService.SubmitAsync(msg.id, msg.title, msg.acronym, msg.periodDate);
+        await _projectService.SubmitAsync(msg.Id, msg.Title, msg.Acronym, msg.periodDate);
     }
 }
