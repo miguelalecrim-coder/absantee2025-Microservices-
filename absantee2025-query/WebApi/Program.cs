@@ -1,8 +1,5 @@
 using Application.DTO;
-
-
 using Domain.Factory;
-
 using Domain.IRepository;
 using Domain.Models;
 using Infrastructure;
@@ -68,11 +65,9 @@ builder.Services.AddMassTransit(x =>
         {
             e.ConfigureConsumer<ProjectCreatedConsumer>(context);
             e.ConfigureConsumer<ProjectUpdatedConsumer>(context);
-        }
-        );
+        });
     });
 });
-
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
