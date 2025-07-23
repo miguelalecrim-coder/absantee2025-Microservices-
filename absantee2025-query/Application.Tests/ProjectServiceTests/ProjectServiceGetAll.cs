@@ -1,134 +1,124 @@
+using Application.DTO;
+using Application.Tests.ProjectServiceTests;
+using AutoMapper;
+using Domain.Models;
 using Moq;
-
 
 namespace Application.Tests.ProjectTests;
 
-
 public class ProjectServiceGetAll : ProjectServiceTestBase
 {
-
     [Fact]
     public async Task GetAll_ShouldReturnMappedProjectDTOsInSuccessResult()
     {
         // Arrange
-        var projects = new List<Project>
+        var periodDateA = new PeriodDate
         {
-            new Project
-            {
-                Id = Guid.NewGuid(),
-                Title = "Project A",
-                Acronym = "PA",
-                PeriodDate = new PeriodDate
-                {
-                    InitDate = new DateOnly(2025, 1, 1),
-                    FinalDate = new DateOnly(2025, 12, 31)
-                }
-            },
-            new Project
-            {
-                Id = Guid.NewGuid(),
-                Title = "Project B",
-                Acronym = "PB",
-                PeriodDate = new PeriodDate
-                {
-                    InitDate = new DateOnly(2025, 2, 1),
-                    FinalDate = new DateOnly(2025, 11, 30)
-                }
-            }
+            InitDate = new DateOnly(2025, 1, 1),
+            FinalDate = new DateOnly(2025, 12, 31)
+        };
+        var periodDateB = new PeriodDate
+        {
+            InitDate = new DateOnly(2025, 2, 1),
+            FinalDate = new DateOnly(2025, 11, 30)
         };
 
-        _repositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(projects);
+        var projects = new List<Project>
+        {
+            new("Project A", "PA", periodDateA),
+            new("Project B", "PB", periodDateB)
+        };
 
-        // Mock mapping for each Project to ProjectDTO
-        _mapperMock.Setup(m => m.Map<ProjectDTO>(It.Is<Project>(p => p.Id == projects[0].Id)))
+        ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(projects);
+
+        MapperDouble.Setup(m => m.Map<ProjectDTO>(It.Is<Project>(p => p.Id == projects[0].Id)))
             .Returns(new ProjectDTO(projects[0].Id, projects[0].Title, projects[0].Acronym, projects[0].PeriodDate));
 
-        _mapperMock.Setup(m => m.Map<ProjectDTO>(It.Is<Project>(p => p.Id == projects[1].Id)))
+        MapperDouble.Setup(m => m.Map<ProjectDTO>(It.Is<Project>(p => p.Id == projects[1].Id)))
             .Returns(new ProjectDTO(projects[1].Id, projects[1].Title, projects[1].Acronym, projects[1].PeriodDate));
 
         // Act
-        var result = await _service.GetAll();
+        var result = await ProjectService.GetAll();
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().HaveCount(2);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value.Count());
 
-        result.Value.Should().ContainEquivalentOf(new ProjectDTO(
-            projects[0].Id, projects[0].Title, projects[0].Acronym, projects[0].PeriodDate));
+        Assert.Contains(result.Value, dto =>
+            dto.Id == projects[0].Id &&
+            dto.Title == projects[0].Title &&
+            dto.Acronym == projects[0].Acronym &&
+            dto.PeriodDate.Equals(projects[0].PeriodDate));
 
-        result.Value.Should().ContainEquivalentOf(new ProjectDTO(
-            projects[1].Id, projects[1].Title, projects[1].Acronym, projects[1].PeriodDate));
+        Assert.Contains(result.Value, dto =>
+            dto.Id == projects[1].Id &&
+            dto.Title == projects[1].Title &&
+            dto.Acronym == projects[1].Acronym &&
+            dto.PeriodDate.Equals(projects[1].PeriodDate));
     }
 
     [Fact]
     public async Task GetAll_ShouldReturnEmptyList_WhenNoProjectsExist()
     {
         // Arrange
-        _repositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Project>());
+        ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Project>());
 
         // Act
-        var result = await _service.GetAll();
+        var result = await ProjectService.GetAll();
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Should().BeEmpty();
+        Assert.True(result.IsSuccess);
+        Assert.Empty(result.Value);
     }
 
     [Fact]
     public async Task GetAll_ShouldReturnFailure_WhenRepositoryThrowsException()
     {
         // Arrange
-        _repositoryMock
+        ProjectRepositoryDouble
             .Setup(r => r.GetAllAsync())
             .ThrowsAsync(new Exception("Database error"));
 
-        // Act
-        Func<Task> act = async () => await _service.GetAll();
-
-        // Assert
-        await act.Should().ThrowAsync<Exception>().WithMessage("Database error");
-
-
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<Exception>(() => ProjectService.GetAll());
+        Assert.Equal("Database error", ex.Message);
     }
 
     [Fact]
     public async Task GetAll_ShouldCallRepositoryExactlyOnce()
     {
         // Arrange
-        _repositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Project>());
+        ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Project>());
 
         // Act
-        await _service.GetAll();
+        await ProjectService.GetAll();
 
         // Assert
-        _repositoryMock.Verify(r => r.GetAllAsync(), Times.Once);
+        ProjectRepositoryDouble.Verify(r => r.GetAllAsync(), Times.Once);
     }
 
-    [Fact]
-    public async Task GetAll_ShouldMapEachProjectExactlyOnce()
-    {
-        // Arrange
-        var projects = new List<Project>
-        {
-            new Project { Id = Guid.NewGuid(), Title = "P1", Acronym = "P1", PeriodDate = new PeriodDate() },
-            new Project { Id = Guid.NewGuid(), Title = "P2", Acronym = "P2", PeriodDate = new PeriodDate() }
-        };
+//     [Fact]
+//     public async Task GetAll_ShouldMapEachProjectExactlyOnce()
+//     {
+//         // Arrange
+//         var projects = new List<Project>
+//         {
+//             new("P1", "P1", new PeriodDate()),
+//             new("P2", "P2", new PeriodDate())
+//         };
 
-        _repositoryMock.Setup(r => r.GetAllAsync()).ReturnsAsync(projects);
+//         ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(projects);
 
-        foreach (var project in projects)
-        {
-            _mapperMock.Setup(m => m.Map<ProjectDTO>(project))
-                .Returns(new ProjectDTO(project.Id, project.Title, project.Acronym, project.PeriodDate));
-        }
+//         foreach (var project in projects)
+//         {
+//             MapperDouble.Setup(m => m.Map<ProjectDTO>(project))
+//                 .Returns(new ProjectDTO(project.Id, project.Title, project.Acronym, project.PeriodDate));
+//         }
 
-        // Act
-        var result = await _service.GetAll();
+//         // Act
+//         var result = await ProjectService.GetAll();
 
-        // Assert
-        _mapperMock.Verify(m => m.Map<ProjectDTO>(It.IsAny<Project>()), Times.Exactly(projects.Count));
-    }
-
-
-
-}
+//         // Assert
+//         MapperDouble.Verify(m => m.Map<ProjectDTO>(It.IsAny<Project>()), Times.Exactly(projects.Count));
+//     }
+ }

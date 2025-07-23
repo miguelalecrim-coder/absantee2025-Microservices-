@@ -32,9 +32,6 @@ namespace WebApi.Controllers
             var result = await _projectService.GetProjectById(projectId);
 
             return result.ToActionResult();
-        }
-        
-
-      
+        }      
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Application;
 using Application.DTO;
+using Application.Interfaces;
 using Application.Messaging;
 
 using AutoMapper;
@@ -9,17 +10,19 @@ using Domain.Models;
 using Infrastructure.DataModel;
 
 
-public class ProjectService
+public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _repository;
     private readonly IProjectFactory _factory;
 
     private readonly IMapper _mapper;
+    private readonly IMessagePublisher _publisher;
 
-    public ProjectService(IProjectRepository repository, IProjectFactory factory, IMapper mapper)
+    public ProjectService(IProjectRepository repository, IProjectFactory factory, IMessagePublisher messagePublisher, IMapper mapper)
     {
         _repository = repository;
         _factory = factory;
+        _publisher = messagePublisher;
         _mapper = mapper;
     }
 
