@@ -1,12 +1,13 @@
+using Application;
 using MassTransit;
 using WebApi.Messages;
 
 public class ProjectCreatedConsumer : IConsumer<ProjectCreatedMessage>
 {
-    private readonly ProjectService _projectService;
+    private readonly IProjectService _projectService;
 
 
-    public ProjectCreatedConsumer(ProjectService projectService)
+    public ProjectCreatedConsumer(IProjectService projectService)
     {
         _projectService = projectService;
     }

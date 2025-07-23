@@ -4,41 +4,47 @@ using Moq;
 using Xunit;
 using System;
 using System.Threading.Tasks;
-using Domain.Models;
+using WebApi.Tests.Helpers;
+using AutoMapper;
 
 namespace Infrastructure.Tests.ProjectRepositoryTests
 {
     public class ProjectRepositoryCheckIfAcronymIsUniqueTests : RepositoryTestBase
     {
         [Fact]
-        public async Task WhenAcronymDoesNotExist_ReturnsTrue()
+        public async Task CheckIfAcronymIsUnique_Unique_ReturnsTrue()
         {
-            var repo = new ProjectRepositoryEF(context, _mapper.Object);
+            // Arrange
+            var context = DbContextMock.CreateWithData(); // vazio
+            var mapperMock = new Mock<IMapper>();
+            var repo = new ProjectRepositoryEF(context, mapperMock.Object);
 
-            var result = await repo.CheckIfAcronymIsUnique("UNIQUE_ACRONYM");
+            // Act
+            var result = await repo.CheckIfAcronymIsUnique("NEW123");
 
+            // Assert
             Assert.True(result);
         }
 
         [Fact]
-        public async Task WhenAcronymExists_ReturnsFalse()
+        public async Task CheckIfAcronymIsUnique_Exists_ReturnsFalse()
         {
-            var acronym = "EXISTING";
-            var periodDate = new PeriodDate(DateOnly.FromDateTime(DateTime.Today).AddDays(-1), DateOnly.FromDateTime(DateTime.Today));
+            // Arrange
             var project = new ProjectDataModel
             {
                 Id = Guid.NewGuid(),
-                Acronym = acronym,
-                Title = "Test Project",
-                PeriodDate = periodDate,
+                Acronym = "DUPLICATE",
+                Title = "Test Project"
             };
-            context.Projects.Add(project);
-            await context.SaveChangesAsync();
 
-            var repo = new ProjectRepositoryEF(context, _mapper.Object);
+            var context = DbContextMock.CreateWithData(project);
+            var mapperMock = new Mock<IMapper>();
+            var repo = new ProjectRepositoryEF(context, mapperMock.Object);
 
-            var result = await repo.CheckIfAcronymIsUnique(acronym);
+            // Act
+            var result = await repo.CheckIfAcronymIsUnique("DUPLICATE");
 
+            // Assert
             Assert.False(result);
         }
     }

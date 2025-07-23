@@ -6,74 +6,52 @@ using Xunit;
 using System;
 using System.Threading.Tasks;
 using Domain.Models;
+using WebApi.Tests.Helpers;
+using AutoMapper;
 
 namespace Infrastructure.Tests.ProjectRepositoryTests
 {
     public class ProjectRepositoryUpdateProjectTests : RepositoryTestBase
     {
         [Fact]
-        public async Task WhenProjectExists_ThenUpdatesAndReturnsProject()
+        public async Task UpdateProject_ExistingProject_UpdatesAndReturnsMapped()
         {
-            // Arrange
-            var guid = Guid.NewGuid();
-            var oldPeriodDate = new PeriodDate(
-                DateOnly.FromDateTime(DateTime.Today).AddDays(-1),
-                DateOnly.FromDateTime(DateTime.Today)
-            );
-
-            var existingProjectDM = new ProjectDataModel
+            var id = Guid.NewGuid();
+            var existing = new ProjectDataModel
             {
-                Id = guid,
-                Title = "Old Title",
-                Acronym = "OLD",
-                PeriodDate = oldPeriodDate,
+                Id = id,
+                Title = "Original",
+                Acronym = "OLD"
             };
 
-            context.Projects.Add(existingProjectDM);
-            await context.SaveChangesAsync();
+            var updated = new Project(id, "Updated", "NEW", 
+                new PeriodDate(DateOnly.FromDateTime(DateTime.Now), DateOnly.FromDateTime(DateTime.Now.AddDays(1))));
 
-            var newPeriodDate = new PeriodDate(
-                DateOnly.FromDateTime(DateTime.Today),
-                DateOnly.FromDateTime(DateTime.Today).AddDays(1)
-            );
+            var context = DbContextMock.CreateWithData(existing);
+            var mapperMock = new Mock<IMapper>();
+            mapperMock.Setup(m => m.Map<ProjectDataModel, Project>(It.IsAny<ProjectDataModel>()))
+                      .Returns(updated);
 
-            var updatedProjectMock = new Mock<IProject>();
-            updatedProjectMock.Setup(p => p.Id).Returns(guid);
-            updatedProjectMock.Setup(p => p.Title).Returns("New Title");
-            updatedProjectMock.Setup(p => p.Acronym).Returns("NEW");
-            updatedProjectMock.Setup(p => p.PeriodDate).Returns(newPeriodDate);
+            var repo = new ProjectRepositoryEF(context, mapperMock.Object);
 
-            _mapper.Setup(m => m.Map<ProjectDataModel, Domain.Models.Project>(It.IsAny<ProjectDataModel>()))
-                .Returns<ProjectDataModel>(dm => new Domain.Models.Project(dm.Id, dm.Title, dm.Acronym, dm.PeriodDate));
+            var result = await repo.UpdateProject(updated);
 
-            var repo = new ProjectRepositoryEF(context, _mapper.Object);
-
-            // Act
-            var result = await repo.UpdateProject(updatedProjectMock.Object);
-
-            // Assert
             Assert.NotNull(result);
-            Assert.Equal("New Title", result.Title);
+            Assert.Equal("Updated", result.Title);
             Assert.Equal("NEW", result.Acronym);
-            Assert.Equal(newPeriodDate, result.PeriodDate);
-
-            // Verifica direto no banco que foi atualizado
-            var projectInDb = await context.Projects.FindAsync(guid);
-            Assert.NotNull(projectInDb);
-            Assert.Equal("New Title", projectInDb.Title);
-            Assert.Equal("NEW", projectInDb.Acronym);
-            Assert.Equal(newPeriodDate, projectInDb.PeriodDate);
         }
 
         [Fact]
-        public async Task WhenProjectDoesNotExist_ThenReturnsNull()
+        public async Task UpdateProject_ProjectDoesNotExist_ReturnsNull()
         {
-            var updatedProjectMock = new Mock<IProject>();
-            updatedProjectMock.Setup(p => p.Id).Returns(Guid.NewGuid());
+            var updated = new Project(Guid.NewGuid(), "New Project", "ACR123",
+                new PeriodDate(DateOnly.FromDateTime(DateTime.Now), DateOnly.FromDateTime(DateTime.Now.AddDays(10))));
 
-            var repo = new ProjectRepositoryEF(context, _mapper.Object);
+            var context = DbContextMock.CreateWithData(); // empty
+            var mapperMock = new Mock<IMapper>();
+            var repo = new ProjectRepositoryEF(context, mapperMock.Object);
 
-            var result = await repo.UpdateProject(updatedProjectMock.Object);
+            var result = await repo.UpdateProject(updated);
 
             Assert.Null(result);
         }

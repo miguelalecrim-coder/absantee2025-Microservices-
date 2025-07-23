@@ -9,7 +9,7 @@ using Domain.Models;
 using Infrastructure.DataModel;
 
 
-public class ProjectService
+public class ProjectService : IProjectService
 {
     private readonly IProjectRepository _repository;
     private readonly IProjectFactory _factory;
@@ -22,6 +22,11 @@ public class ProjectService
         _factory = factory;
         _publisher = messagePublisher;
         _mapper = mapper;
+    }
+
+    public ProjectService()
+    {
+       
     }
 
     public async Task<Result<ProjectDTO>> Add(CreateProjectDTO projectDTO)

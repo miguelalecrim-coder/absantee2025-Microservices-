@@ -1,4 +1,5 @@
 
+using Application;
 using MassTransit;
 using MassTransit.Middleware;
 using WebApi.Messages;
@@ -6,9 +7,9 @@ using WebApi.Messages;
 
 public class ProjectUpdatedConsumer : IConsumer<ProjectUpdatedMessage>
 {
-    private readonly ProjectService _projectService;
+    private readonly IProjectService _projectService;
 
-    public ProjectUpdatedConsumer(ProjectService projectService)
+    public ProjectUpdatedConsumer(IProjectService projectService)
     {
         _projectService = projectService;
     }

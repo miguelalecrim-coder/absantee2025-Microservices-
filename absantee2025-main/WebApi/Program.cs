@@ -11,6 +11,7 @@ using Infrastructure.Resolvers;
 using Microsoft.EntityFrameworkCore;
 using MassTransit;
 using Application.Messaging;
+using Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +25,8 @@ builder.Services.AddDbContext<AbsanteeContext>(opt =>
 
 //Services
 
-builder.Services.AddTransient<ProjectService>();
+builder.Services.AddScoped<IProjectService, ProjectService>();
+
 builder.Services.AddScoped<IMessagePublisher, MassTransitPublisher>();
 
 //Repositories
