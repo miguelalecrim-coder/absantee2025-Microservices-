@@ -1,13 +1,14 @@
 using WebApi.Messages;
 using MassTransit;
 using MassTransit.Middleware;
+using Application.Interfaces;
 
 
 public class ProjectUpdatedConsumer : IConsumer<ProjectUpdatedMessage>
 {
-    private readonly ProjectService _projectService;
+    private readonly IProjectService _projectService;
 
-    public ProjectUpdatedConsumer(ProjectService projectService)
+    public ProjectUpdatedConsumer(IProjectService projectService)
     {
         _projectService = projectService;
     }
@@ -15,6 +16,6 @@ public class ProjectUpdatedConsumer : IConsumer<ProjectUpdatedMessage>
     public async Task Consume(ConsumeContext<ProjectUpdatedMessage> context)
 {
     var msg = context.Message;
-    await _projectService.SubmitUpdatedAsync(msg.id, msg.title, msg.acronym, msg.periodDate);
+    await _projectService.SubmitUpdatedAsync(msg.Id, msg.Title, msg.Acronym, msg.periodDate);
 }
 }

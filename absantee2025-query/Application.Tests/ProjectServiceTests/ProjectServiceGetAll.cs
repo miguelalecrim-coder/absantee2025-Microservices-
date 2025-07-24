@@ -8,7 +8,7 @@ namespace Application.Tests.ProjectTests;
 
 public class ProjectServiceGetAll : ProjectServiceTestBase
 {
-    [Fact]
+   [Fact]
     public async Task GetAll_ShouldReturnMappedProjectDTOsInSuccessResult()
     {
         // Arrange
@@ -71,6 +71,8 @@ public class ProjectServiceGetAll : ProjectServiceTestBase
         Assert.Empty(result.Value);
     }
 
+  
+
     [Fact]
     public async Task GetAll_ShouldReturnFailure_WhenRepositoryThrowsException()
     {
@@ -83,6 +85,8 @@ public class ProjectServiceGetAll : ProjectServiceTestBase
         var ex = await Assert.ThrowsAsync<Exception>(() => ProjectService.GetAll());
         Assert.Equal("Database error", ex.Message);
     }
+
+   
 
     [Fact]
     public async Task GetAll_ShouldCallRepositoryExactlyOnce()
@@ -97,28 +101,98 @@ public class ProjectServiceGetAll : ProjectServiceTestBase
         ProjectRepositoryDouble.Verify(r => r.GetAllAsync(), Times.Once);
     }
 
-//     [Fact]
-//     public async Task GetAll_ShouldMapEachProjectExactlyOnce()
-//     {
-//         // Arrange
-//         var projects = new List<Project>
-//         {
-//             new("P1", "P1", new PeriodDate()),
-//             new("P2", "P2", new PeriodDate())
-//         };
+  
+    [Fact]
+    public async Task GetAll_ShouldReturnProjectsInSameOrderAsRepository()
+    {
+        // Arrange
+        var projects = new List<Project>
+        {
+            new("Project Z", "PZ", new PeriodDate { InitDate = new DateOnly(2025, 1, 1), FinalDate = new DateOnly(2025, 12, 31) }),
+            new("Project A", "PA", new PeriodDate { InitDate = new DateOnly(2025, 2, 1), FinalDate = new DateOnly(2025, 11, 30) }),
+            new("Project M", "PM", new PeriodDate { InitDate = new DateOnly(2025, 3, 1), FinalDate = new DateOnly(2025, 10, 31) })
+        };
 
-//         ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(projects);
+        ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(projects);
 
-//         foreach (var project in projects)
-//         {
-//             MapperDouble.Setup(m => m.Map<ProjectDTO>(project))
-//                 .Returns(new ProjectDTO(project.Id, project.Title, project.Acronym, project.PeriodDate));
-//         }
+        MapperDouble.Setup(m => m.Map<ProjectDTO>(It.IsAny<Project>()))
+            .Returns((Project p) => new ProjectDTO(p.Id, p.Title, p.Acronym, p.PeriodDate));
 
-//         // Act
-//         var result = await ProjectService.GetAll();
+        // Act
+        var result = await ProjectService.GetAll();
 
-//         // Assert
-//         MapperDouble.Verify(m => m.Map<ProjectDTO>(It.IsAny<Project>()), Times.Exactly(projects.Count));
-//     }
+        // Assert
+        Assert.True(result.IsSuccess);
+        var resultList = result.Value.ToList();
+        
+        Assert.Equal(projects[0].Id, resultList[0].Id);
+        Assert.Equal(projects[1].Id, resultList[1].Id);
+        Assert.Equal(projects[2].Id, resultList[2].Id);
+        
+        Assert.Equal("Project Z", resultList[0].Title);
+        Assert.Equal("Project A", resultList[1].Title);
+        Assert.Equal("Project M", resultList[2].Title);
+    }
+
+    [Fact]
+    public async Task GetAll_ShouldHandleLargeNumberOfProjects()
+    {
+        // Arrange
+        const int projectCount = 1000;
+        var projects = new List<Project>();
+        
+        for (int i = 0; i < projectCount; i++)
+        {
+            projects.Add(new Project($"Project {i}", $"P{i}", new PeriodDate 
+            { 
+                InitDate = new DateOnly(2025, 1, 1), 
+                FinalDate = new DateOnly(2025, 12, 31) 
+            }));
+        }
+
+        ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(projects);
+        MapperDouble.Setup(m => m.Map<ProjectDTO>(It.IsAny<Project>()))
+            .Returns((Project p) => new ProjectDTO(p.Id, p.Title, p.Acronym, p.PeriodDate));
+
+        // Act
+        var result = await ProjectService.GetAll();
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(projectCount, result.Value.Count());
+        MapperDouble.Verify(m => m.Map<ProjectDTO>(It.IsAny<Project>()), Times.Exactly(projectCount));
+    }
+
+    [Fact]
+    public async Task GetAll_ShouldReturnDifferentInstancesOnMultipleCalls()
+    {
+        // Arrange
+        var project = new Project("Test Project", "TP", new PeriodDate 
+        { 
+            InitDate = new DateOnly(2025, 1, 1), 
+            FinalDate = new DateOnly(2025, 12, 31) 
+        });
+
+        ProjectRepositoryDouble.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Project> { project });
+        MapperDouble.Setup(m => m.Map<ProjectDTO>(It.IsAny<Project>()))
+            .Returns((Project p) => new ProjectDTO(p.Id, p.Title, p.Acronym, p.PeriodDate));
+
+        // Act
+        var result1 = await ProjectService.GetAll();
+        var result2 = await ProjectService.GetAll();
+
+        // Assert
+        Assert.True(result1.IsSuccess);
+        Assert.True(result2.IsSuccess);
+        
+        // Verificar que são instâncias diferentes (referências diferentes)
+        Assert.NotSame(result1.Value, result2.Value);
+        
+        // Mas com o mesmo conteúdo
+        Assert.Equal(result1.Value.Count(), result2.Value.Count());
+        Assert.Equal(result1.Value.First().Id, result2.Value.First().Id);
+        
+        // Verificar que o repositório foi chamado duas vezes
+        ProjectRepositoryDouble.Verify(r => r.GetAllAsync(), Times.Exactly(2));
+    }
  }
